@@ -3,16 +3,16 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "sigh"
+name = "sighapi"
 version = "0.0.1a"
 description = "Sigh text to audio model"
-readme = "README.md"
 requires-python = ">=3.8"
 
 dependencies = [
     "boto3",
     "encodec",
     "funcy",
+    "huggingface-hub>=0.14.1",
     "numpy",
     "scipy",
     "tokenizers",
@@ -27,7 +27,6 @@ dev = [
     "black",
     "codecov",
     "flake8",
-    "huggingface-hub",
     "hypothesis>=6.14,<7",
     "isort>=5.0.0,<6",
     "jupyter",
@@ -41,10 +40,11 @@ dev = [
 ]
 
 [tool.setuptools]
-packages = ["sigh"]
+packages = ["sighapi"]
 
 [tool.setuptools.package-data]
-sigh = ["assets/prompts/*.npz"]
+sighapi = ["assets/prompts/*.npz", "assets/prompts/v2/*.npz"]
+
 
 [tool.black]
 line-length = 100
