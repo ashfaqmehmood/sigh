@@ -116,7 +116,7 @@ class CustomTokenizer(nn.Module):
             model = CustomTokenizer()
         else:
             model = CustomTokenizer(data_from_model.hidden_size, data_from_model.input_size, data_from_model.output_size, data_from_model.version)
-        model.load_state_dict(torch.load(path))
+        model.load_state_dict(torch.load(path, map_location=map_location))
         if map_location:
             model = model.to(map_location)
         return model
@@ -151,14 +151,14 @@ class Data:
 
 
 def auto_train(data_path, save_path='model.pth', load_model: str | None = None, save_epochs=1):
-    data_x, data_y = [], []
+    data_x, data_y = {}, {}
 
     if load_model and os.path.isfile(load_model):
         print('Loading model from', load_model)
         model_training = CustomTokenizer.load_from_checkpoint(load_model, 'cuda')
     else:
         print('Creating new model.')
-        model_training = CustomTokenizer(version=1).to('cuda')  # Settings for the model to run without lstm
+        model_training = CustomTokenizer(version=1).to('cuda')
     save_path = os.path.join(data_path, save_path)
     base_save_path = '.'.join(save_path.split('.')[:-1])
 
@@ -167,19 +167,29 @@ def auto_train(data_path, save_path='model.pth', load_model: str | None = None, 
 
     ready = os.path.join(data_path, 'ready')
     for input_file in os.listdir(ready):
-        full_path = os.path.join(ready, input_file)
+        full_path = os.path.join(ready, input_file)        
+        try:
+            prefix = input_file.split("_")[0]
+            number = int(prefix)
+        except ValueError as e:            
+            raise e
         if input_file.endswith(sem_string):
-            data_y.append(numpy.load(full_path))
+            data_y[number] = numpy.load(full_path)
         elif input_file.endswith(feat_string):
-            data_x.append(numpy.load(full_path))
+            data_x[number] = numpy.load(full_path)
+    
     model_training.prepare_training()
-
     epoch = 1
 
     while 1:
         for i in range(save_epochs):
             j = 0
-            for x, y in zip(data_x, data_y):
+            for i in range(max(len(data_x), len(data_y))):
+                x = data_x.get(i)
+                y = data_y.get(i)
+                if x is None or y is None:
+                    print(f'The training data does not match. key={i}')
+                    continue
                 model_training.train_step(torch.tensor(x).to('cuda'), torch.tensor(y).to('cuda'), j % 50 == 0)  # Print loss every 50 steps
                 j += 1
         save_p = save_path
